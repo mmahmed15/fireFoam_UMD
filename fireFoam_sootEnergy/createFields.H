@@ -287,3 +287,31 @@ volScalarField dQrad
  mesh,
  dimensionedScalar("dQrad", dimEnergy/dimTime/dimVolume,0.0)
  );
+
+volScalarField dQradabs
+(
+ IOobject
+ (
+  "dQradabs",
+  runTime.timeName(),
+  mesh,
+  IOobject::NO_READ,
+  IOobject::AUTO_WRITE
+ ),
+ mesh,
+ dimensionedScalar("dQradabs", dimEnergy/dimTime/dimVolume,0.0)
+ );
+
+volScalarField dQradem
+(
+ IOobject
+ (
+  "dQradem",
+  runTime.timeName(),
+  mesh,
+  IOobject::NO_READ,
+  IOobject::AUTO_WRITE
+ ),
+ mesh,
+ dimensionedScalar("dQradem", dimEnergy/dimTime/dimVolume,0.0)
+ );
