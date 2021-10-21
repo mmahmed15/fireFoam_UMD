@@ -1,0 +1,4 @@
+version.Fver
+fireFoam_soot.C
+
+EXE = $(FOAM_USER_APPBIN)/fireFoam_soot

@@ -28,9 +28,9 @@ tmp<fv::convectionScheme<scalar>> mvConvection
     combustion->correct();
 
     // dQ is only for diagnostic purposes
-    dQ = combustion->Sh()
-        + mesh.lookupObject<volScalarField>("sootOxidationRate") * singleMixture.qFuel()
-        + mesh.lookupObject<volScalarField>("sootOxidationRate") * (h0_CO - h0_F);
+    dQ = combustion->Sh();
+//        + mesh.lookupObject<volScalarField>("sootOxidationRate") * singleMixture.qFuel()
+//        + mesh.lookupObject<volScalarField>("sootOxidationRate") * (h0_CO - h0_F);
 
     volScalarField Yt(0.0*Y[0]);
 
@@ -142,8 +142,8 @@ tmp<fv::convectionScheme<scalar>> mvConvection
       - fvm::laplacian(turbulence->alphaEff(), he)
      ==
         combustion->Sh()
-      + mesh.lookupObject<volScalarField>("sootOxidationRate") * singleMixture.qFuel()
-      + mesh.lookupObject<volScalarField>("sootOxidationRate") * (h0_CO - h0_F)
+//      + mesh.lookupObject<volScalarField>("sootOxidationRate") * singleMixture.qFuel()
+//      + mesh.lookupObject<volScalarField>("sootOxidationRate") * (h0_CO - h0_F)
       + radiation->Sh(thermo)
       + parcels.Sh(he)
       + surfaceFilm.Sh()
