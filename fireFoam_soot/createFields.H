@@ -153,6 +153,20 @@ volScalarField dQ
     dimensionedScalar("dQ", dimEnergy/dimTime/dimVolume, 0.0)  
 );
 
+volScalarField dQsoot
+(
+    IOobject
+    (
+        "dQsoot",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("dQsoot", dimEnergy/dimTime/dimVolume, 0.0)  
+);
+
 
 Info<< "Creating field dpdt\n" << endl;
 volScalarField dpdt
