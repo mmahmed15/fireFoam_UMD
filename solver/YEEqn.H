@@ -84,6 +84,13 @@ tmp<fv::convectionScheme<scalar>> mvConvection
     volScalarField::Internal & radField = dQrad.ref();
     radField = rad;
 
+    const volScalarField::Internal radRu = radiation->Ru();
+    volScalarField::Internal& radFieldRu = dQradabs.ref();
+    radFieldRu = radRu;
+
+    const volScalarField::Internal radRp = radiation->Rp().ref()*T4;
+    volScalarField::Internal& radFieldRp = dQradem.ref();
+    radFieldRp = radRp;
  
     volScalarField& he = thermo.he();
 
