@@ -37,6 +37,7 @@ absorptionEmissionModel wsggmAbsorptionEmissionBordbarBand;
 wsggmAbsorptionEmissionBordbarBandCoeffs
 {
 
+	Csoot 0.0;
     band0
     {
         species

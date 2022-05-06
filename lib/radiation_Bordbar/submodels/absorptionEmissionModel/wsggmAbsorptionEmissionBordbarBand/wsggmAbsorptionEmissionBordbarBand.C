@@ -58,7 +58,7 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::wsggmAbsorptionEmissionBord
     specieIndex_(label(0)),
     thermo_(mesh.lookupObject<fluidThermo>("thermophysicalProperties")),
     Yj_(nSpecies_)
-    // Csoot_(readScalar(coeffsDict_.lookup("Csoot")))
+    //Csoot_(readScalar(coeffsDict_.lookup("Csoot")))
 
 {
 
@@ -118,7 +118,7 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::~wsggmAbsorptionEmissionBor
 Foam::tmp<Foam::volScalarField>
 Foam::radiation::wsggmAbsorptionEmissionBordbarBand::aCont(const label bandI) const
 {
-    const volScalarField& T = thermo_.T(); 
+    const volScalarField& T = thermo_.T(); // unused for calculation of absorption but needed for weighting coeffs
     const volScalarField& p = thermo_.p();
 
     const psiReactionThermo& thermo= mesh_.lookupObject<psiReactionThermo>("thermophysicalProperties");
@@ -250,7 +250,7 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::aCont(const label bandI) co
             mesh_.time().timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::NO_WRITE   
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedScalar("zero",dimless,0.0)
@@ -296,15 +296,21 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::aCont(const label bandI) co
     partialPressureCO2=wMean*(p/101325/dimensionedScalar("unity",dimPressure,1.0))*(Y[indexCO2]/specieThermo[indexCO2].W());
     partialPressureH2O=wMean*(p/101325/dimensionedScalar("unity",dimPressure,1.0))*(Y[indexH2O]/specieThermo[indexH2O].W());
 
-    for (label l = 0; l < partialPressureCO2.size(); l++)
+    for (label l=0; l<partialPressureCO2.size(); l++)
     {
-        if (partialPressureCO2[l] == 0.0)
+        if(partialPressureCO2[l]==0)
         {
-            MR[l] = 0.0;
+            MR[l]=0.0;
         }
         else
         {
-            MR[l] = partialPressureH2O[l] / partialPressureCO2[l];
+            MR[l]=partialPressureH2O[l]/partialPressureCO2[l];
+        }
+        if ( MR[l] < 0.01 ){
+            MR[l] = 0.01;
+        }
+        if ( MR[l] > 4.0 ){
+            MR[l] = 4.0;
         }
     }
 
@@ -314,15 +320,15 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::aCont(const label bandI) co
 
     forAll(a, i)
     {
-        for (label n=0; n<nSpecies; n++) // nSpecies = 1
+        for (label n=0; n<nSpecies; n++)
         {
-            const absorptionCoeffsBordbar::coeffArray& b = coeffs_[n][bandI].coeffs(T[i]);
+            const absorptionCoeffsBordbar::coeffArray& b =
+                coeffs_[n][bandI].coeffs(T[i]);
 
-	    // a[i]=(b[0]+b[1]*MR[i])*(partialPressureH2O[i]+partialPressureCO2[i])*0.986923 + aSoot[i]; // conversion from bar to atm
+        // a[i]=(b[0]+b[1]*MR[i])*(partialPressureH2O[i]+partialPressureCO2[i])*0.986923 + aSoot[i]; // conversion from bar to atm
         
-        // Bordbar WSGG (unit is in atm not bar), Rui 04/16/2020
-            a[i] = (b[0] + b[1] * MR[i] + b[2] * pow(MR[i], 2) + b[3] * pow(MR[i], 3) + b[4] * pow(MR[i], 4))
-                * (partialPressureH2O[i] + partialPressureCO2[i]);
+            a[i]=( b[0] + b[1]*MR[i] + b[2]*pow(MR[i],2) + b[3]*pow(MR[i],3) + b[4]*pow(MR[i],4) )
+                *(partialPressureH2O[i]+partialPressureCO2[i]); // Bordbar WSGG, Rui 01/16/2020
         }
     }
 
@@ -334,7 +340,6 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::ggCoeffCont(const label ban
 {
 
     label nSpecies = speciesNames_.size();
-
     const volScalarField& T = thermo_.T();
 
     const volScalarField& p = thermo_.p();
@@ -459,20 +464,20 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::ggCoeffCont(const label ban
 
     for (label l=0; l<partialPressureCO2.size(); l++)
     {
-        if(partialPressureCO2[l] == 0.0)
+        if(partialPressureCO2[l]==0)
         {
-            MR[l] = 0.0;
+            MR[l]=0.0;
         }
         else
         {
-            MR[l] = partialPressureH2O[l] / partialPressureCO2[l];
+            MR[l]=partialPressureH2O[l]/partialPressureCO2[l];
         }
-        // if ( MR[l] < 0.01 ){
-        //     MR[l] = 0.01;
-        // }
-        // if ( MR[l] > 4.0 ){
-        //     MR[l] = 4.0;
-        // }
+        if ( MR[l] < 0.01 ){
+            MR[l] = 0.01;
+        }
+        if ( MR[l] > 4.0 ){
+            MR[l] = 4.0;
+        }
     }
 
 // INTERNAL FIELD CALCULATION
@@ -481,7 +486,8 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::ggCoeffCont(const label ban
     {
         for (label n=0; n<nSpecies; n++)
         {
-            const absorptionCoeffsBordbar::coeffArray& b = coeffs_[n][bandI].coeffs(T[i]);
+            const absorptionCoeffsBordbar::coeffArray& b =
+                coeffs_[n][bandI].coeffs(T[i]);
 
             // Tref = 1200K, Tgas(cell) = T[i]
 
@@ -499,13 +505,12 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::ggCoeffCont(const label ban
              }
              else
              {
-                wsggmWeightingCoeff[i] = 0.0; //MMA: correct transparent window
-                /*wsggmWeightingCoeff[i] = 1-((b[5]*pow(MR[i],0) + b[10]*pow(MR[i],1) + b[15]*pow(MR[i],2) + b[20]*pow(MR[i],3) + b[25]*pow(MR[i],4)) * pow(T[i]/1200,0)
-                                       + (b[6]*pow(MR[i],0) + b[11]*pow(MR[i],1) + b[16]*pow(MR[i],2) + b[21]*pow(MR[i],3) + b[26]*pow(MR[i],4)) * pow(T[i]/1200,1)
-                                       + (b[7]*pow(MR[i],0) + b[12]*pow(MR[i],1) + b[17]*pow(MR[i],2) + b[22]*pow(MR[i],3) + b[27]*pow(MR[i],4)) * pow(T[i]/1200,2)
-                                       + (b[8]*pow(MR[i],0) + b[13]*pow(MR[i],1) + b[18]*pow(MR[i],2) + b[23]*pow(MR[i],3) + b[28]*pow(MR[i],4)) * pow(T[i]/1200,3)
-                                       + (b[9]*pow(MR[i],0) + b[14]*pow(MR[i],1) + b[19]*pow(MR[i],2) + b[24]*pow(MR[i],3) + b[29]*pow(MR[i],4)) * pow(T[i]/1200,4)); // Bordbar WSGG, Rui 01/16/2020*/
-            }
+                // wsggmWeightingCoeff[i] = 1-((b[2]*pow(MR[i],0)+b[5]*pow(MR[i],1)+b[8]*pow(MR[i],2))*pow(T[i]/1200,0)
+                //                       + (b[3]*pow(MR[i],0)+b[6]*pow(MR[i],1)+b[9]*pow(MR[i],2))*pow(T[i]/1200,1)
+                //                        + (b[4]*pow(MR[i],0)+b[7]*pow(MR[i],1)+b[10]*pow(MR[i],2))*pow(T[i]/1200,2));
+
+                wsggmWeightingCoeff[i] = 0.0;
+             }
        }
     }
 // BOUNDARY FIELD CALCULATION
@@ -516,12 +521,12 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::ggCoeffCont(const label ban
 
        scalarField& wsggmWeightingCoeffBC = tggCoeffBC.ref().boundaryFieldRef()[bid];
 
-	    forAll(wsggmWeightingCoeffBC, i)
-	    {
-		for (label n=0; n<nSpecies; n++)
-		{
-		    const absorptionCoeffsBordbar::coeffArray& b =
-			coeffs_[n][bandI].coeffs(Tw[i]);
+        forAll(wsggmWeightingCoeffBC, i)
+        {
+        for (label n=0; n<nSpecies; n++)
+        {
+            const absorptionCoeffsBordbar::coeffArray& b =
+            coeffs_[n][bandI].coeffs(Tw[i]);
 
                     // Tref = 1200K, Tgas = T
 
@@ -531,23 +536,24 @@ Foam::radiation::wsggmAbsorptionEmissionBordbarBand::ggCoeffCont(const label ban
                     //                   + (b[3]*pow(MR[i],0)+b[6]*pow(MR[i],1)+b[9]*pow(MR[i],2))*pow(Tw[i]/1200,1)
                     //                    + (b[4]*pow(MR[i],0)+b[7]*pow(MR[i],1)+b[10]*pow(MR[i],2))*pow(Tw[i]/1200,2);
 
-                    wsggmWeightingCoeffBC[i] = (b[5]*pow(MR[i],0) + b[10]*pow(MR[i],1) + b[15]*pow(MR[i],2) + b[20]*pow(MR[i],3) + b[25]*pow(MR[i],4)) * pow(Tw[i]/1200.,0)
-                                       + (b[6]*pow(MR[i],0) + b[11]*pow(MR[i],1) + b[16]*pow(MR[i],2) + b[21]*pow(MR[i],3) + b[26]*pow(MR[i],4)) * pow(Tw[i]/1200.,1)
-                                       + (b[7]*pow(MR[i],0) + b[12]*pow(MR[i],1) + b[17]*pow(MR[i],2) + b[22]*pow(MR[i],3) + b[27]*pow(MR[i],4)) * pow(Tw[i]/1200.,2)
-                                       + (b[8]*pow(MR[i],0) + b[13]*pow(MR[i],1) + b[18]*pow(MR[i],2) + b[23]*pow(MR[i],3) + b[28]*pow(MR[i],4)) * pow(Tw[i]/1200.,3)
-                                       + (b[9]*pow(MR[i],0) + b[14]*pow(MR[i],1) + b[19]*pow(MR[i],2) + b[24]*pow(MR[i],3) + b[29]*pow(MR[i],4)) * pow(Tw[i]/1200.,4); // Bordbar WSGG, Rui 01/16/2020
+                    wsggmWeightingCoeffBC[i] = (b[5]*pow(MR[i],0) + b[10]*pow(MR[i],1) + b[15]*pow(MR[i],2) + b[20]*pow(MR[i],3) + b[25]*pow(MR[i],4)) * pow(T[i]/1200,0)
+                                       + (b[6]*pow(MR[i],0) + b[11]*pow(MR[i],1) + b[16]*pow(MR[i],2) + b[21]*pow(MR[i],3) + b[26]*pow(MR[i],4)) * pow(T[i]/1200,1)
+                                       + (b[7]*pow(MR[i],0) + b[12]*pow(MR[i],1) + b[17]*pow(MR[i],2) + b[22]*pow(MR[i],3) + b[27]*pow(MR[i],4)) * pow(T[i]/1200,2)
+                                       + (b[8]*pow(MR[i],0) + b[13]*pow(MR[i],1) + b[18]*pow(MR[i],2) + b[23]*pow(MR[i],3) + b[28]*pow(MR[i],4)) * pow(T[i]/1200,3)
+                                       + (b[9]*pow(MR[i],0) + b[14]*pow(MR[i],1) + b[19]*pow(MR[i],2) + b[24]*pow(MR[i],3) + b[29]*pow(MR[i],4)) * pow(T[i]/1200,4); // Bordbar WSGG, Rui 01/16/2020
                 }
                 else
                 {
-                    wsggmWeightingCoeffBC[i] = 0.0; //MMA: correct transparent window
-                    /*wsggmWeightingCoeffBC[i] = 1-((b[5]*pow(MR[i],0) + b[10]*pow(MR[i],1) + b[15]*pow(MR[i],2) + b[20]*pow(MR[i],3) + b[25]*pow(MR[i],4)) * pow(Tw[i]/1200.,0)
-                                       + (b[6]*pow(MR[i],0) + b[11]*pow(MR[i],1) + b[16]*pow(MR[i],2) + b[21]*pow(MR[i],3) + b[26]*pow(MR[i],4)) * pow(Tw[i]/1200.,1)
-                                       + (b[7]*pow(MR[i],0) + b[12]*pow(MR[i],1) + b[17]*pow(MR[i],2) + b[22]*pow(MR[i],3) + b[27]*pow(MR[i],4)) * pow(Tw[i]/1200.,2)
-                                       + (b[8]*pow(MR[i],0) + b[13]*pow(MR[i],1) + b[18]*pow(MR[i],2) + b[23]*pow(MR[i],3) + b[28]*pow(MR[i],4)) * pow(Tw[i]/1200.,3)
-                                       + (b[9]*pow(MR[i],0) + b[14]*pow(MR[i],1) + b[19]*pow(MR[i],2) + b[24]*pow(MR[i],3) + b[29]*pow(MR[i],4)) * pow(Tw[i]/1200.,4)); // Bordbar WSGG, Rui 01/16/2020*/
+                    // wsggmWeightingCoeffBC[i] = 1-((b[2]*pow(MR[i],0)+b[5]*pow(MR[i],1)+b[8]*pow(MR[i],2))*pow(Tw[i]/1200,0)
+                    //                   + (b[3]*pow(MR[i],0)+b[6]*pow(MR[i],1)+b[9]*pow(MR[i],2))*pow(Tw[i]/1200,1)
+                    //                    + (b[4]*pow(MR[i],0)+b[7]*pow(MR[i],1)+b[10]*pow(MR[i],2))*pow(Tw[i]/1200,2));
+
+                    wsggmWeightingCoeffBC[i] = 0.0;
                 }
-		}
-	    }
+
+
+        }
+        }
     }
 
     return tggCoeff + tggCoeffBC;
@@ -642,7 +648,7 @@ void Foam::radiation::wsggmAbsorptionEmissionBordbarBand::correctNew // modified
 
     for (label j=0; j<nBands_; j++)
     {
-        Info<< ":Calculating weighting coefficient in band " << j << endl;
+        Info<< "Calculating weighting coefficient in band: " << j << endl;
         ggCoeffLambda[j]//.internalField()
             = this->ggCoeff(j);
 
@@ -658,10 +664,7 @@ void Foam::radiation::wsggmAbsorptionEmissionBordbarBand::correctNew // modified
         else // calculate weighting coefficient for clear band (must always come last in input file)
         {
             ggCoeff = 1-wsggmSum;
-
-            //MMA: update transparent window
-            ggCoeffLambda[j]//.internalField()
-            = ggCoeff;
+            ggCoeffLambda[j] = ggCoeff;
         }
 
     }
